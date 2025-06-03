@@ -62,7 +62,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 
 		new Setting(this.containerEl)
 			.setName('Rules')
-			.setDesc('Choose the type of rule to add')
+			.setDesc('Choose the type of rule to add.')
 			.addButton((button: ButtonComponent) => {
 				button
 					.setTooltip('Add Tag Rule')
@@ -388,10 +388,10 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 
 		const autoCreateFoldersDesc = document.createDocumentFragment();
 		autoCreateFoldersDesc.append(
-			'If enabled, will automatically create a folder with the same name as the note when moving it.'
+			'If enabled, will automatically create a folder with the same name as the note upon move.'
 		);
 		new Setting(this.containerEl)
-			.setName('Auto Create Folders')
+			.setName('Auto Create Note Folder')
 			.setDesc(autoCreateFoldersDesc)
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.auto_create_folders).onChange(async (value) => {
