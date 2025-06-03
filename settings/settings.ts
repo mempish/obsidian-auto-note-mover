@@ -79,6 +79,13 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						});
 						await this.plugin.saveSettings();
 						this.display();
+						// Focus the first text box after the DOM is updated
+						setTimeout(() => {
+							const firstInput = this.containerEl.querySelector('.auto-note-mover-setting input');
+							if (firstInput instanceof HTMLInputElement) {
+								firstInput.focus();
+							}
+						}, 0);
 					});
 			})
 			.addButton((button: ButtonComponent) => {
@@ -97,6 +104,13 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						});
 						await this.plugin.saveSettings();
 						this.display();
+						// Focus the first text box after the DOM is updated
+						setTimeout(() => {
+							const firstInput = this.containerEl.querySelector('.auto-note-mover-setting input');
+							if (firstInput instanceof HTMLInputElement) {
+								firstInput.focus();
+							}
+						}, 0);
 					});
 			})
 			.addButton((button: ButtonComponent) => {
@@ -115,6 +129,13 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						});
 						await this.plugin.saveSettings();
 						this.display();
+						// Focus the first text box after the DOM is updated
+						setTimeout(() => {
+							const firstInput = this.containerEl.querySelector('.auto-note-mover-setting input');
+							if (firstInput instanceof HTMLInputElement) {
+								firstInput.focus();
+							}
+						}, 0);
 					});
 			});
 
