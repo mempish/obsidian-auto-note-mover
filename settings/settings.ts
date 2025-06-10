@@ -69,7 +69,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					.setButtonText('Add Tag Rule')
 					.setCta()
 					.onClick(async () => {
-						this.plugin.settings.folder_tag_pattern.push({
+						this.plugin.settings.folder_tag_pattern.unshift({
 							folder: '',
 							tag: '',
 							frontmatterPropertyKey: '',
@@ -119,7 +119,7 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					.setButtonText('Add Regex Rule')
 					.setCta()
 					.onClick(async () => {
-						this.plugin.settings.folder_tag_pattern.push({
+						this.plugin.settings.folder_tag_pattern.unshift({
 							folder: '',
 							tag: '',
 							frontmatterPropertyKey: '',
