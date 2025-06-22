@@ -28,6 +28,7 @@ export interface AutoNoteMoverSettings {
 	excluded_folder: Array<ExcludedFolder>;
 	show_alerts: boolean;
 	auto_create_folders: boolean;
+	move_folder_note: boolean;
 }
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
@@ -39,6 +40,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	excluded_folder: [{ folder: '' }],
 	show_alerts: true,
 	auto_create_folders: false,
+	move_folder_note: false,
 };
 
 export class AutoNoteMoverSettingTab extends PluginSettingTab {
@@ -418,7 +420,20 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 				toggle.setValue(this.plugin.settings.auto_create_folders).onChange(async (value) => {
 					this.plugin.settings.auto_create_folders = value;
 					await this.plugin.saveSettings();
-					this.display();
+				});
+			});
+
+		const moveFolderNoteDesc = document.createDocumentFragment();
+		moveFolderNoteDesc.append(
+			'If enabled, when moving a note, will also move any folder with the same name as the note if it exists in the same directory.'
+		);
+		new Setting(this.containerEl)
+			.setName('Move Folder Note')
+			.setDesc(moveFolderNoteDesc)
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.move_folder_note).onChange(async (value) => {
+					this.plugin.settings.move_folder_note = value;
+					await this.plugin.saveSettings();
 				});
 			});
 	}

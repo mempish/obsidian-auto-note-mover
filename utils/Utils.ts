@@ -29,7 +29,7 @@ const isTFExists = (app: App, path: string, F: typeof TFile | typeof TFolder) =>
 	}
 };
 
-export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, showAlert: boolean = true, autoCreateFolders: boolean = false) => {
+export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, showAlert: boolean = true, autoCreateFolders: boolean = false, moveFolderNote: boolean = false) => {
 	// Does the destination folder exist?
 	if (!isTFExists(app, settingFolder, TFolder)) {
 		console.error(`[Auto Note Mover] The destination folder "${settingFolder}" does not exist.`);
@@ -58,6 +58,32 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 	console.log(`[Auto Note Mover] Moved the note "${fileFullName}" to the "${settingFolder}".`);
 	if (showAlert) {
 		new Notice(`[Auto Note Mover]\nMoved the note "${fileFullName}"\nto the "${settingFolder}".`);
+	}
+
+	// Move folder with same name if enabled
+	if (moveFolderNote) {
+		const fileNameWithoutExt = fileFullName.replace('.md', '');
+		const folderPath = normalizePath(file.parent.path + '/' + fileNameWithoutExt);
+		const newFolderPath = normalizePath(settingFolder + '/' + fileNameWithoutExt);
+		
+		// Check if folder with same name exists in the same directory as the note
+		if (isTFExists(app, folderPath, TFolder)) {
+			// Check if destination folder already exists
+			if (isTFExists(app, newFolderPath, TFolder)) {
+				new Notice(`[Auto Note Mover]\nFolder "${fileNameWithoutExt}" already exists in destination.`);
+				console.error(`[Auto Note Mover]\nFolder "${fileNameWithoutExt}" already exists in destination.`);
+			} else {
+				// Move the folder
+				const folderToMove = app.vault.getAbstractFileByPath(folderPath);
+				if (folderToMove instanceof TFolder) {
+					await app.fileManager.renameFile(folderToMove, newFolderPath);
+					console.log(`[Auto Note Mover] Moved folder "${fileNameWithoutExt}" to "${settingFolder}".`);
+					if (showAlert) {
+						new Notice(`[Auto Note Mover]\nMoved folder "${fileNameWithoutExt}"\nto "${settingFolder}".`);
+					}
+				}
+			}
+		}
 	}
 
 	if(autoCreateFolders) {
