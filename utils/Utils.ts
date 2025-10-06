@@ -1,4 +1,5 @@
 import { App, CachedMetadata, normalizePath, Notice, parseFrontMatterEntry, TFile, TFolder } from 'obsidian';
+import AutoNoteMover from '../main';
 
 // Disable AutoNoteMover when "AutoNoteMover: disable" is present in the frontmatter.
 export const isFmDisable = (fileCache?: CachedMetadata) => {
@@ -29,13 +30,42 @@ const isTFExists = (app: App, path: string, F: typeof TFile | typeof TFolder) =>
 	}
 };
 
-export const fileMove = async (app: App, settingFolder: string, fileFullName: string, file: TFile, showAlert: boolean = true, autoCreateFolders: boolean = false, moveFolderNote: boolean = false) => {
+export function findTFile(name: string, app: App): TFile | null {
+	if (!name) return null;
+	return app.metadataCache.getFirstLinkpathDest(normalizePath(name), "");
+}
+
+export function getTemplater(app: App) {
+	return (app as any).plugins.plugins["templater-obsidian"]?.templater;
+}
+
+export async function writeTemplate(app: App, template: TFile) {
+	const templater = getTemplater(app);
+	if (templater?.append_template_to_active_file) {
+		await templater.append_template_to_active_file(template);
+	}
+}
+
+export const fileMove = async (plugin: AutoNoteMover, settingFolder: string, fileFullName: string, file: TFile, template?: TFile | null) => {
+	const { app, settings } = plugin;
+	console.log(`Setting Folder: ${settingFolder}`);
+
+	const autoCreateFolders = settings.auto_create_folders;
+	const moveFolderNote = settings.move_folder_note;
+	const showAlert = settings.show_alerts;
+	
 	// Does the destination folder exist?
 	if (!isTFExists(app, settingFolder, TFolder)) {
-		console.error(`[Auto Note Mover] The destination folder "${settingFolder}" does not exist.`);
-		new Notice(`[Auto Note Mover]\n"Error: The destination folder\n"${settingFolder}"\ndoes not exist.`);
-		return;
+		if (settings.create_non_existant_folders) {
+			console.log(`[Auto Note Mover] Creating folder: ${settingFolder}`);
+			await app.vault.createFolder(normalizePath(settingFolder));
+		} else {
+			console.error(`[Auto Note Mover] The destination folder "${settingFolder}" does not exist.`);
+			new Notice(`[Auto Note Mover]\n"Error: The destination folder\n"${settingFolder}"\ndoes not exist.`);
+			return;
+		}
 	}
+	
 	// Does the file with the same name exist in the destination folder?
 	const newPath = normalizePath(settingFolder + '/' + fileFullName);
 	if (isTFExists(app, newPath, TFile) && newPath !== file.path) {
@@ -51,6 +81,11 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 	// Is the destination folder the same path as the current folder?
 	if (newPath === file.path) {
 		return;
+	}
+
+	// Write template if provided
+	if (template) {
+		await writeTemplate(app, template);
 	}
 
 	// Move file
@@ -86,9 +121,10 @@ export const fileMove = async (app: App, settingFolder: string, fileFullName: st
 		}
 	}
 
-	if(autoCreateFolders) {
+	// Create folder with same name as file if enabled
+	if (autoCreateFolders) {
 		const newFolderPath = normalizePath(settingFolder + '/' + fileFullName.replace('.md', ''));
-		if(!isTFExists(app, newFolderPath, TFolder)) {
+		if (!isTFExists(app, newFolderPath, TFolder)) {
 			await app.vault.createFolder(newFolderPath);
 			console.log(`[Auto Note Mover] Created folder "${newFolderPath}".`);
 		} else {

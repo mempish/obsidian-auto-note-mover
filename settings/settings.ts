@@ -1,10 +1,10 @@
 import AutoNoteMover from 'main';
 import { App, Notice, PluginSettingTab, Setting, ButtonComponent } from 'obsidian';
 
-import { FolderSuggest } from 'suggests/file-suggest';
+import { FolderSuggest, FileSuggest } from 'suggests/file-suggest';
 import { TagSuggest } from 'suggests/tag-suggest';
 import { FrontmatterPropertySuggest, FrontmatterValueSuggest } from 'suggests/frontmatter-suggest';
-import { arrayMove } from 'utils/Utils';
+import { arrayMove, getTemplater } from 'utils/Utils';
 
 export interface FolderTagPattern {
 	folder: string;
@@ -13,9 +13,14 @@ export interface FolderTagPattern {
 	frontmatterPropertyValue: string;
 	pattern: string;
 	ruleType: string;
+	template_file: string;
 }
 
 export interface ExcludedFolder {
+	folder: string;
+}
+
+export interface TargetFolder {
 	folder: string;
 }
 
@@ -26,21 +31,25 @@ export interface AutoNoteMoverSettings {
 	folder_tag_pattern: Array<FolderTagPattern>;
 	use_regex_to_check_for_excluded_folder: boolean;
 	excluded_folder: Array<ExcludedFolder>;
+	target_folders: Array<TargetFolder>;
 	show_alerts: boolean;
 	auto_create_folders: boolean;
 	move_folder_note: boolean;
+	create_non_existant_folders: boolean;
 }
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	trigger_auto_manual: 'Automatic',
 	use_regex_to_check_for_tags: false,
 	statusBar_trigger_indicator: true,
-	folder_tag_pattern: [{ folder: '', tag: '', frontmatterPropertyKey: '', frontmatterPropertyValue: '', pattern: '', ruleType: '' }],
+	folder_tag_pattern: [{ folder: '', tag: '', frontmatterPropertyKey: '', frontmatterPropertyValue: '', pattern: '', ruleType: '', template_file: '' }],
 	use_regex_to_check_for_excluded_folder: false,
 	excluded_folder: [{ folder: '' }],
+	target_folders: [{ folder: '' }],
 	show_alerts: true,
 	auto_create_folders: false,
 	move_folder_note: false,
+	create_non_existant_folders: false,
 };
 
 export class AutoNoteMoverSettingTab extends PluginSettingTab {
@@ -77,7 +86,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							frontmatterPropertyKey: '',
 							frontmatterPropertyValue: '',
 							pattern: '',
-							ruleType: 'tag'
+							ruleType: 'tag',
+							template_file: ''
 						});
 						await this.plugin.saveSettings();
 						this.display();
@@ -102,7 +112,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							frontmatterPropertyKey: '',
 							frontmatterPropertyValue: '',
 							pattern: '',
-							ruleType: 'property'
+							ruleType: 'property',
+							template_file: ''
 						});
 						await this.plugin.saveSettings();
 						this.display();
@@ -127,7 +138,8 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 							frontmatterPropertyKey: '',
 							frontmatterPropertyValue: '',
 							pattern: '',
-							ruleType: 'regex'
+							ruleType: 'regex',
+							template_file: ''
 						});
 						await this.plugin.saveSettings();
 						this.display();
@@ -291,6 +303,17 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						this.display();
 					})
 			);
+		new Setting(this.containerEl)
+		.setName('Create Folders if they don\'t exist')
+		.setDesc('This can be especially useful when using capture groups in the destination folder.')
+		.addToggle((toggle) => {
+			toggle.setValue(this.plugin.settings.create_non_existant_folders).onChange(async (value) => {
+				this.plugin.settings.create_non_existant_folders = value;
+				await this.plugin.saveSettings();
+				this.display();
+			});
+		});
+
 
 		new Setting(this.containerEl)
 			.setName('Use regular expressions to check for tags')
@@ -372,6 +395,66 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 						.setTooltip('Delete')
 						.onClick(async () => {
 							this.plugin.settings.excluded_folder.splice(index, 1);
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				});
+			s.infoEl.remove();
+		});
+
+		new Setting(this.containerEl)
+			.setName('Target Folders')
+			.setDesc('Folders to process when using the "Move notes in target folders" command.')
+			.addButton((button: ButtonComponent) => {
+				button
+					.setTooltip('Add Target Folder')
+					.setButtonText('Add Folder')
+					.setCta()
+					.onClick(async () => {
+						this.plugin.settings.target_folders.push({
+							folder: '',
+						});
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
+
+		this.plugin.settings.target_folders.forEach((target_folder, index) => {
+			const s = new Setting(this.containerEl)
+				.setClass('auto-note-mover-setting')
+				.addSearch((cb) => {
+					new FolderSuggest(this.app, cb.inputEl);
+					cb.setPlaceholder('Folder')
+						.setValue(target_folder.folder)
+						.onChange(async (newFolder) => {
+							this.plugin.settings.target_folders[index].folder = newFolder;
+							await this.plugin.saveSettings();
+						});
+				})
+
+				.addExtraButton((cb) => {
+					cb.setIcon('up-chevron-glyph')
+						.setTooltip('Move up')
+						.onClick(async () => {
+							arrayMove(this.plugin.settings.target_folders, index, index - 1);
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				})
+				.addExtraButton((cb) => {
+					cb.setIcon('down-chevron-glyph')
+						.setTooltip('Move down')
+						.onClick(async () => {
+							arrayMove(this.plugin.settings.target_folders, index, index + 1);
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				})
+				.addExtraButton((cb) => {
+					cb.setIcon('cross')
+						.setTooltip('Delete')
+						.onClick(async () => {
+							this.plugin.settings.target_folders.splice(index, 1);
 							await this.plugin.saveSettings();
 							this.display();
 						});

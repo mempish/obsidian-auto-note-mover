@@ -7,9 +7,10 @@ import {
 	parseFrontMatterStringArray,
 	TAbstractFile,
 	normalizePath,
+	debounce
 } from 'obsidian';
 import { DEFAULT_SETTINGS, AutoNoteMoverSettings, AutoNoteMoverSettingTab } from 'settings/settings';
-import { fileMove, getTriggerIndicator, isFmDisable } from 'utils/Utils';
+import { fileMove, findTFile, getTriggerIndicator, isFmDisable } from 'utils/Utils';
 
 export default class AutoNoteMover extends Plugin {
 	settings: AutoNoteMoverSettings;
@@ -66,34 +67,52 @@ export default class AutoNoteMover extends Plugin {
 				const settingPropertyValue = folderTagPattern[i].frontmatterPropertyValue;
 				const settingPattern = folderTagPattern[i].pattern;
 				const ruleType = folderTagPattern[i].ruleType;
+				const template = folderTagPattern[i].template_file ? findTFile(folderTagPattern[i].template_file, this.app) : undefined;
+
+				// Skip if settingFolder is not defined
+				if (!settingFolder) {
+					console.warn(`[Auto Note Mover] Skipping rule ${i}: settingFolder is undefined`);
+					continue;
+				}
 
 				// Tag check
 				if (ruleType === 'tag' && settingTag) {
-					if (!this.settings.use_regex_to_check_for_tags) {
-						if (cacheTag.find((e) => e === settingTag)) {
-							fileMove(this.app, settingFolder, fileFullName, file, this.settings.show_alerts, this.settings.auto_create_folders, this.settings.move_folder_note);
-							break;
+					if (!settingPattern) {
+						if (this.settings.use_regex_to_check_for_tags) {
+							const regex = new RegExp(settingTag);
+							const matches = cacheTag.find((e) => regex.test(e));
+							if (matches) {
+								const match = regex.exec(matches);
+								if (match) {
+									// Ensure settingFolder is a string before calling replace
+									const folderTemplate = settingFolder || '';
+									const newSettingFolder = folderTemplate.replace(/\$(\d)/g, (_, i) => match[i] || '');
+									console.log(`[Auto Note Mover] Dynamic folder: ${folderTemplate} -> ${newSettingFolder}`);
+									fileMove(this, newSettingFolder, fileFullName, file, template);
+									break;
+								}
+							}
 						}
-					} else if (this.settings.use_regex_to_check_for_tags) {
-						const regex = new RegExp(settingTag);
-						if (cacheTag.find((e) => regex.test(e))) {
-							fileMove(this.app, settingFolder, fileFullName, file, this.settings.show_alerts, this.settings.auto_create_folders, this.settings.move_folder_note);
-							break;
-						}
+						else {
+							if (cacheTag.find((e) => e === settingTag)) {
+								fileMove(this, settingFolder, fileFullName, file, template);
+								break;
+							}
+						}  
 					}
 				// Title check
 				} else if (ruleType === 'regex' && settingPattern) {
 					const regex = new RegExp(settingPattern);
 					const isMatch = regex.test(fileName);
 					if (isMatch) {
-						fileMove(this.app, settingFolder, fileFullName, file, this.settings.show_alerts, this.settings.auto_create_folders, this.settings.move_folder_note);
+						fileMove(this, settingFolder, fileFullName, file, template);
 						break;
 					}
 				// Property check
 				} else if (ruleType === 'property' && settingPropertyKey && settingPropertyValue && fileCache?.frontmatter) {
 					const fm = parseFrontMatterStringArray(fileCache.frontmatter, settingPropertyKey);
 					if (fm && fm.length > 0 && fm.includes(settingPropertyValue)) {
-						fileMove(this.app, settingFolder, fileFullName, file, this.settings.show_alerts, this.settings.auto_create_folders, this.settings.move_folder_note);
+						fileMove(this, settingFolder, fileFullName, file, template);
 						break;
 					}
 				}
@@ -172,6 +191,46 @@ export default class AutoNoteMover extends Plugin {
 					new Notice('[Auto Note Mover]\nTrigger is Automatic.');
 				}
 				setIndicator();
+			},
+		});
+
+		const moveTargetFoldersCommand = () => {
+			const targetFolders = this.settings.target_folders.filter(tf => tf.folder && tf.folder.trim() !== '');
+			
+			if (targetFolders.length === 0) {
+				new Notice('[Auto Note Mover]\nNo target folders configured. Please add target folders in settings.');
+				return;
+			}
+
+			let processedCount = 0;
+			const allFiles = this.app.vault.getMarkdownFiles();
+			
+			targetFolders.forEach(targetFolderObj => {
+				const targetFolder = normalizePath(targetFolderObj.folder);
+				console.log(`[Auto Note Mover] Processing target folder: ${targetFolder}`);
+				
+				const filesInFolder = allFiles.filter(file => {
+					const filePath = file.parent ? normalizePath(file.parent.path) : '';
+					return filePath === targetFolder || filePath.startsWith(targetFolder + '/');
+				});
+				
+				console.log(`[Auto Note Mover] Found ${filesInFolder.length} files in ${targetFolder}`);
+				
+				filesInFolder.forEach(file => {
+					fileCheck(file, undefined, 'cmd');
+					processedCount++;
+				});
+			});
+			
+			const folderNames = targetFolders.map(tf => tf.folder).join(', ');
+			new Notice(`[Auto Note Mover]\nProcessed ${processedCount} notes in target folders:\n${folderNames}`);
+		};
+
+		this.addCommand({
+			id: 'Move-notes-in-target-folders',
+			name: 'Move notes in target folders',
+			callback: () => {
+				moveTargetFoldersCommand();
 			},
 		});
 
