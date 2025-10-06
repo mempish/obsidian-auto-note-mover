@@ -103,3 +103,5 @@ popper.js https://popper.js.org/
 
 ## Special Thanks
 Thanks to [@pjeby](https://github.com/pjeby) for his help in creating this plugin.
+
+Thanks to [@ggstrader](https://github.com/ggstrader) for the dynamic folder functionality with regex capture groups.
