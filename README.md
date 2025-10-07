@@ -38,6 +38,35 @@ Tag: Be sure to add a **\#** at the beginning.
 
 Title: Tested by JavaScript regular expressions.
 
+## Dynamic Folders (Advanced)
+
+Auto Note Mover supports **dynamic folder creation** using regex capture groups. This allows you to automatically create subfolders based on tag content.
+
+### Example: Subject-based Organization
+
+**Setup:**
+- **Rule Type**: Tag  
+- **Tag**: `subjects/(.+)` (regex pattern)
+- **Folder**: `Subjects/$1` (capture group placeholder)
+- **Enable**: "Use regular expressions to check for tags" ✅
+
+**Results:**
+- `#subjects/mathematics` → `Subjects/mathematics/` folder
+- `#subjects/project-management` → `Subjects/project management/` folder  
+- `#subjects/web-development` → `Subjects/web development/` folder
+
+### Settings
+
+- **Convert hyphens to spaces**: Automatically converts hyphens in capture groups to spaces (enabled by default)
+- **Target folders**: Configure specific folders for batch processing with the "Move notes in target folders" command
+
+## Commands
+
+- **Move all notes**: Process all notes in the vault
+- **Move the note**: Process the currently active note  
+- **Move notes in target folders**: Process only notes in configured target folders
+- **Toggle Auto-Manual**: Switch between automatic and manual triggers
+
 ## Notice
 
 1. Attached files will not be moved, but they will still appear in the note.
@@ -102,6 +131,8 @@ popper.js https://popper.js.org/
 
 
 ## Special Thanks
+Thanks to [@farux](https://github.com/farux) for creating the original Auto Note Mover plugin.
+
 Thanks to [@pjeby](https://github.com/pjeby) for his help in creating this plugin.
 
 Thanks to [@ggstrader](https://github.com/ggstrader) for the dynamic folder functionality with regex capture groups.
