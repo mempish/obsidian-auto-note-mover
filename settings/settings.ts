@@ -36,6 +36,7 @@ export interface AutoNoteMoverSettings {
 	auto_create_folders: boolean;
 	move_folder_note: boolean;
 	create_non_existant_folders: boolean;
+	convert_hyphens_to_spaces: boolean;
 }
 
 export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
@@ -50,6 +51,7 @@ export const DEFAULT_SETTINGS: AutoNoteMoverSettings = {
 	auto_create_folders: false,
 	move_folder_note: false,
 	create_non_existant_folders: false,
+	convert_hyphens_to_spaces: true,
 };
 
 export class AutoNoteMoverSettingTab extends PluginSettingTab {
@@ -323,6 +325,16 @@ export class AutoNoteMoverSettingTab extends PluginSettingTab {
 					this.plugin.settings.use_regex_to_check_for_tags = value;
 					await this.plugin.saveSettings();
 					this.display();
+				});
+			});
+
+		new Setting(this.containerEl)
+			.setName('Convert hyphens to spaces in capture groups')
+			.setDesc('When using regex capture groups in folder names, automatically convert hyphens to spaces (e.g., "content-creation" becomes "content creation").')
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.convert_hyphens_to_spaces).onChange(async (value) => {
+					this.plugin.settings.convert_hyphens_to_spaces = value;
+					await this.plugin.saveSettings();
 				});
 			});
 

@@ -86,7 +86,14 @@ export default class AutoNoteMover extends Plugin {
 								if (match) {
 									// Ensure settingFolder is a string before calling replace
 									const folderTemplate = settingFolder || '';
-									const newSettingFolder = folderTemplate.replace(/\$(\d)/g, (_, i) => match[i] || '');
+									const newSettingFolder = folderTemplate.replace(/\$(\d)/g, (_, i) => {
+										const captureGroup = match[i] || '';
+										// Convert hyphens to spaces if setting is enabled
+										const processedGroup = this.settings.convert_hyphens_to_spaces 
+											? captureGroup.replace(/-/g, ' ').trim()
+											: captureGroup.trim();
+										return processedGroup;
+									});
 									console.log(`[Auto Note Mover] Dynamic folder: ${folderTemplate} -> ${newSettingFolder}`);
 									fileMove(this, newSettingFolder, fileFullName, file, template);
 									break;
